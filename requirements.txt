@@ -1,0 +1,8 @@
+requests
+requests-oauthlib
+pyotp
+qrcode
+ifcfg
+py-dmidecode
+pyautogui
+pycryptodome
