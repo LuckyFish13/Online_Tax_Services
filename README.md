@@ -1,10 +1,8 @@
 
- > Changelog [V0-0-5]:
+ > Changelog [V0-0-6]:
 
- - added dynamic checks for screen scaling and colour depth (X11) during install
- - added pycryptodome to requirements.txt
- - added encryption of all data files
- - add switch to change user password
+ - added required legal statements
+ - removed option for manual entry when submitting VAT return
  - tested on Linux Mint (Ubuntu) 21.1 - Mate desktop
 
  > Install pre-requisites:
