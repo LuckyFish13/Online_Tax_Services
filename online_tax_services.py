@@ -326,7 +326,7 @@ class OnlineTaxServices():
 
         #version control!
         c_ver.update({"APP_NAME": "Ronin_Customs_Internal_VAT"})
-        c_ver.update({"APP_VERSION": "0.0.5"})
+        c_ver.update({"APP_VERSION": "0.0.6"})
 
         #app info
         id = str(input("Enter HMRC Client ID: "))
@@ -335,6 +335,9 @@ class OnlineTaxServices():
             uri = int(input("Enter URI port: "))
         except Exception:
             print("Port must be int! Exiting...")
+            sys.exit(1)
+        if uri < 1024:
+            print("Port must be > 1023! Exiting...")
             sys.exit(1)
         if uri > 65535:
             print("Port must be < 65536! Exiting...")
@@ -568,7 +571,7 @@ class OnlineTaxServices():
             with socketserver.TCPServer(("", self.config['APP_CONFIG']['URI_PORT']), handler) as httpd:
                 httpd.handle_request()
                 httpd.server_close()
-        except Exception:
+        except Exception as e:
             print("Too many frequent requests! exiting...")
             sys.exit(1)
         pyautogui.hotkey('ctrl','w')
@@ -939,75 +942,48 @@ class OnlineTaxServices():
         vat_return = {}
         vat_return.update({'periodKey': pk})
 
-        ent = str(input("Manual entry? [Y/n]: "))
-        if ent == 'Y':
-            try:
-                ds = float(input("1. VAT due on sales: "))
-                da = float(input("2. VAT due on acquisitions: "))
-                dt = ds + da
-                print(f"3. Total VAT due: {dt:.2f}")
-                dr = float(input("4. Total VAT reclaimed: "))
-                dn = dt - dr
-                print(f"5. Net VAT due: {dn:.2f}")
-                ts = float(input("6. Total value of sales: "))
-                tp = float(input("7. Total value of purchases: "))
-                tl = float(input("8. Total value of supplies: "))
-                ta = float(input("9. Total value of acquisitions: "))
-            except Exception:
-                print("Input must be an int or float!")
-                return -1
-            
-            vat_return.update({'vatDueSales': ds})
-            vat_return.update({'vatDueAcquisitions': da})
-            vat_return.update({'totalVatDue': float(f"{dt:.2f}")})
-            vat_return.update({'vatReclaimedCurrPeriod': dr})
-            vat_return.update({'netVatDue': float(f"{dn:.2f}")})
-            vat_return.update({'totalValueSalesExVAT': ts})
-            vat_return.update({'totalValuePurchasesExVAT': tp})
-            vat_return.update({'totalValueGoodsSuppliedExVAT': tl})
-            vat_return.update({'totalAcquisitionsExVAT': ta})
+        fil = str(input("CSV Filename: "))
+        
+        if os.path.exists(fil) == False:
+            print('File does not exist!')
+            return -1
+        name, ext =  os.path.splitext(fil)
+        if ext != '.csv':
+            print("Invalid return file!")
+            return -1
+        
+        try:
+            with open(fil, 'r') as f:
+                reader = csv.reader(f)
+                rows = []
+                for row in reader:
+                    rows.append(float(row[0]))
+                
+                if(len(rows) != 9):
+                    print("Invalid return file!")
+                    return -1
 
-        else:
-            fil = str(input("Filename: "))
-            
-            if os.path.exists(fil) == False:
-                print('File does not exist!')
-                return -1
-            name, ext =  os.path.splitext(fil)
-            if ext != '.csv':
-                print("Invalid return file!")
-                return -1
-            
-            try:
-                with open(fil, 'r') as f:
-                    reader = csv.reader(f)
-                    rows = []
-                    for row in reader:
-                        rows.append(float(row[0]))
-                    
-                    if(len(rows) != 9):
-                        print("Invalid return file!")
-                        return -1
+                vat_return.update({'vatDueSales': f"{float(rows[0]):.2f}"})
+                vat_return.update({'vatDueAcquisitions': f"{float(rows[1]):.2f}"})
+                vat_return.update({'totalVatDue': f"{float(rows[2]):.2f}"})
+                vat_return.update({'vatReclaimedCurrPeriod': f"{float(rows[3]):.2f}"})
+                vat_return.update({'netVatDue': f"{abs(float(rows[4])):.2f}"})
+                vat_return.update({'totalValueSalesExVAT': f"{round(rows[5])}"})
+                vat_return.update({'totalValuePurchasesExVAT': f"{round(rows[6])}"})
+                vat_return.update({'totalValueGoodsSuppliedExVAT': f"{round(rows[7])}"})
+                vat_return.update({'totalAcquisitionsExVAT': f"{round(rows[8])}"})
 
-                    vat_return.update({'vatDueSales': float(rows[0])})
-                    vat_return.update({'vatDueAcquisitions': float(rows[1])})
-                    vat_return.update({'totalVatDue': float(rows[2])})
-                    vat_return.update({'vatReclaimedCurrPeriod': float(rows[3])})
-                    vat_return.update({'netVatDue': float(rows[4])})
-                    vat_return.update({'totalValueSalesExVAT': float(rows[5])})
-                    vat_return.update({'totalValuePurchasesExVAT': float(rows[6])})
-                    vat_return.update({'totalValueGoodsSuppliedExVAT': float(rows[7])})
-                    vat_return.update({'totalAcquisitionsExVAT': float(rows[8])})
+                self.DisplayReturn(vat_return)
 
-                    self.DisplayReturn(vat_return)
+        except Exception:
+            print("Invalid return file!")
+            return -1
 
-            except Exception:
-                print("Invalid return file!")
-                return -1
-
-
+        print("CSV imported successfully!")
         fin = str(input("Finalised? [Y/n]: "))
         if fin == 'Y':
+            print('When you submit this VAT information you are making a legal declaration that the information is true and complete.')
+            print('A false declaration can result in prosecution.')
             cfm = str(input("Are you sure you want to submit a finalised return? [Y/n]: "))
             if cfm != 'Y':
                 return -1
